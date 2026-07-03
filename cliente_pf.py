@@ -140,22 +140,13 @@ def listar_residuos(cliente):
         )
 
 
-def registrar_interesse(
-        cliente,
-        nome,
-        ip,
-        porta_p2p
-):
+def registrar_interesse(cliente, nome, ip, porta_p2p):
+
+    global participantes_grupo
 
     try:
-
-        id_residuo = int(
-            input("ID do resíduo: ")
-        )
-
-        quantidade = int(
-            input("Quantidade desejada (kg): ")
-        )
+        id_residuo = int(input("ID do resíduo: "))
+        quantidade = int(input("Quantidade desejada (kg): "))
 
         requisicao = {
             "acao": "interesse",
@@ -166,72 +157,50 @@ def registrar_interesse(
             "quantidade": quantidade
         }
 
-        cliente.send(
-            json.dumps(requisicao).encode()
-        )
+        cliente.send(json.dumps(requisicao).encode())
 
-        resposta = json.loads(
-            cliente.recv(4096).decode()
-        )
+        resposta = json.loads(cliente.recv(4096).decode())
 
-        if resposta["status"] == "aguardando":
+        if resposta["status"] == "coleta_confirmada":
+
+            print("\n" + "=" * 50)
+            print("COLETA CONFIRMADA")
+            print("=" * 50)
+            print(resposta["mensagem"])
+            print(f"Resíduo: {resposta['residuo']['tipo']}")
+            print(f"Quantidade coletada: {resposta['participante']['quantidade']} kg")
+            print("Esse resíduo agora não aparecerá mais na listagem.")
+
+        elif resposta["status"] == "aguardando":
 
             print("\n=== GRUPO EM FORMAÇÃO ===")
-
-            print(
-                f"Tipo: {resposta['tipo']}"
-            )
-
-            print(
-                f"Solicitado: "
-                f"{resposta['solicitado']} kg"
-            )
-
-            print(
-                f"Necessário: "
-                f"{resposta['necessario']} kg"
-            )
+            print(resposta["mensagem"])
+            print(f"Tipo: {resposta['tipo']}")
+            print(f"Solicitado: {resposta['solicitado']} kg")
+            print(f"Necessário: {resposta['necessario']} kg")
 
         elif resposta["status"] == "grupo_formado":
-
-            global participantes_grupo
 
             participantes_grupo = []
 
             print("\n" + "=" * 50)
             print("GRUPO FORMADO")
             print("=" * 50)
+            print(resposta["mensagem"])
 
             for participante in resposta["participantes"]:
-
-                print(
-                    f"{participante['nome']} - "
-                    f"{participante['quantidade']} kg"
-                )
+                print(f"{participante['nome']} - {participante['quantidade']} kg")
 
                 if participante["nome"] != nome:
-                    participantes_grupo.append(
-                        participante
-                    )
+                    participantes_grupo.append(participante)
 
-            print(
-                "\nAgora vocês podem se comunicar "
-                "via P2P."
-            )
+            print("\nAgora vocês podem se comunicar via P2P.")
 
         else:
-
-            print(
-                resposta.get(
-                    "mensagem",
-                    "Erro desconhecido."
-                )
-            )
+            print(resposta.get("mensagem", "Erro desconhecido."))
 
     except Exception as erro:
-
         print(f"Erro: {erro}")
-
 
 # ==========================
 # MENU
@@ -302,5 +271,5 @@ def menu():
             print("Opção inválida.")
 
 
-if __name__ == "__main__":
-    menu()
+    if __name__ == "__main__":
+        menu()
